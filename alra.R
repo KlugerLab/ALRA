@@ -62,7 +62,10 @@ alra <- function( A_norm, k=0,q=10) {
     #   A list with three items
     #       1) The rank k approximation of A_norm.
     #       2) The rank k approximation of A_norm, adaptively thresholded
-    #       3) The rank k approximation of A_norm, adaptively thresholded and with the first two moments of the non-zero values matched to the first two moments of the non-zeros of A_norm
+    #       3) The rank k approximation of A_norm, adaptively thresholded and
+    #       with the first two moments of the non-zero values matched to the
+    #       first two moments of the non-zeros of A_norm. This is the completed
+    #       matrix most people will want to work with
     # Example:
     #     result.completed <- adjusted_svd(A_norm,15)
     #     A_norm_rank15 <- result.completed[[1]]     # The low rank approximation for reference purposes...not suggested for matrix completion
