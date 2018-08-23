@@ -4,12 +4,18 @@ normalize_data <- function (A) {
     #  Simple convenience function to library and log normalize a matrix
 
     totalUMIPerCell <- rowSums(A);
+    if (any(totalUMIPerCell == 0)) {
+        toRemove <- which(totalUMIPerCell == 0)
+        A_norm <- A_norm[-toRemove,]
+        print(sprintf("Removed %d cells which did not express any genes", length(toRemove)))
+    }
+
     A_norm <- sweep(A, 1, totalUMIPerCell, '/');
     A_norm <- A_norm * 10E3
     A_norm <- log(A_norm +1);
 }
 
-choose_k <- function (A_norm,K=100, pval_thresh=1E-10, noise_start=80) {
+choose_k <- function (A_norm,K=100, pval_thresh=1E-10, noise_start=80,q=2) {
     #  Heuristic for choosing rank k for the low rank approximation based on
     #  statistics of the spacings between consecutive singular values. Finds
     #  the smallest singular value \sigma_i such that $\sigma_i - \sigma_{i-1}
@@ -18,16 +24,25 @@ choose_k <- function (A_norm,K=100, pval_thresh=1E-10, noise_start=80) {
     #
     # Args:
     #   A_norm: The log-transformed expression matrix of cells (rows) vs. genes (columns)
+    #   K: Number of singular values to compute. Must be less than the smallest dimension of the matrix.
     #   pval_thresh : The threshold for ``significance''
     #   noise_start : Index for which all smaller singular values are considered noise
+    #   q : Number of additional power iterations
     #
     # Returns:
     #   A list with three items
     #       1) Chosen k
     #       2) P values of each possible k 
     #       3) Singular values of the matrix A_norm
+
+    if (K > min(dim(A_norm))) {
+         stop("For an m by n matrix, K must be smaller than the min(m,n).")
+    }
+    if (noise_start >K-5) {
+        stop("There need to be at least 5 singular values considered noise.")
+    }
     noise_svals <- noise_start:K
-    rsvd_out <- rsvd(A_norm,K)
+    rsvd_out <- rsvd(A_norm,K,q=q)
     diffs <- diff(rsvd_out$d)
     pvals <- pnorm(diffs,mean(diffs[noise_svals-1]),sd(diffs[noise_svals-1]))
     k <- max(which( pvals  <pval_thresh))
