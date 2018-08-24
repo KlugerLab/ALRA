@@ -6,9 +6,12 @@ ALRA is a method for imputation of missing values in single cell RNA-sequencing 
 
 This repository contains codes for running ALRA in R. The only prerequisite for ALRA is installation of the randomized SVD package RSVD which can be installed as `install.packages('rsvd')`.  
 ## Usage
+Please be sure to pass ALRA a matrix where the cells are rows and genes are columns. 
+
 ALRA can be used as follows:
 ~~~~
-# Let A_norm be a normalized expression matrix where cells are rows and genes are columns. We use library and log normalization, but other approaches may also work well
+# Let A_norm be a normalized expression matrix where cells are rows and genes are columns.
+# We use library and log normalization, but other approaches may also work well.
 result.completed <- alra(A_norm)
 A_norm_completed <- result.completed[[3]]
 ~~~~

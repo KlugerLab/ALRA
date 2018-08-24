@@ -7,7 +7,7 @@ normalize_data <- function (A) {
     if (any(totalUMIPerCell == 0)) {
         toRemove <- which(totalUMIPerCell == 0)
         A_norm <- A_norm[-toRemove,]
-        print(sprintf("Removed %d cells which did not express any genes", length(toRemove)))
+        cat(sprintf("Removed %d cells which did not express any genes\n", length(toRemove)))
     }
 
     A_norm <- sweep(A, 1, totalUMIPerCell, '/');
@@ -36,10 +36,10 @@ choose_k <- function (A_norm,K=100, pval_thresh=1E-10, noise_start=80,q=2) {
     #       3) Singular values of the matrix A_norm
 
     if (K > min(dim(A_norm))) {
-         stop("For an m by n matrix, K must be smaller than the min(m,n).")
+         stop("For an m by n matrix, K must be smaller than the min(m,n).\n")
     }
     if (noise_start >K-5) {
-        stop("There need to be at least 5 singular values considered noise.")
+        stop("There need to be at least 5 singular values considered noise.\n")
     }
     noise_svals <- noise_start:K
     rsvd_out <- rsvd(A_norm,K,q=q)
@@ -70,23 +70,29 @@ alra <- function( A_norm, k=0,q=10) {
     #     result.completed <- adjusted_svd(A_norm,15)
     #     A_norm_rank15 <- result.completed[[1]]     # The low rank approximation for reference purposes...not suggested for matrix completion
     #     A_norm_rank15_cor <- result.completed[[3]] # The actual adjusted, completed matrix
+
+    cat(sprintf("Read matrix with %d cells and %d genes\n", nrow(A_norm), ncol(A_norm)))
+    if (class(A_norm) != 'matrix') {
+        stop(sprintf("A_norm is of class %s, but it should be of class matrix. Did you forget to run as.matrix()?",class(A_norm)))
+    }
+
     if (k ==0 ) {
         k_choice <- choose_k(A_norm)
         k <-  k_choice$k
-        print(sprintf("Chose k=%d",k))
+        cat(sprintf("Chose k=%d\n",k))
     }
 
-    print("Getting nonzeros")
+    cat("Getting nonzeros\n")
     originally_nonzero <- A_norm >0 
 
-    print("Randomized SVD")
+    cat("Randomized SVD\n")
     fastDecomp_noc <- rsvd(A_norm, k,q=q);
     A_norm_rank_k <- fastDecomp_noc$u[,1:k]%*%diag(fastDecomp_noc$d[1:k])%*% t(fastDecomp_noc$v[,1:k])
 
 
-    print("Find mins")
+    cat("Find mins\n")
     A_norm_rank_k_mins <- abs(apply(A_norm_rank_k,2,min))
-    print("Sweep")
+    cat("Sweep\n")
     A_norm_rank_k_cor <- replace(A_norm_rank_k, A_norm_rank_k <= A_norm_rank_k_mins[col(A_norm_rank_k)], 0)
 
 
@@ -98,7 +104,7 @@ alra <- function( A_norm, k=0,q=10) {
 
     toscale <- !is.na(sigma_1) & !is.na(sigma_2)
 
-    print(sprintf("Scaling all except for %d columns", sum(!toscale)))
+    cat(sprintf("Scaling all except for %d columns\n", sum(!toscale)))
 
     sigma_1_2 <- sigma_2/sigma_1
     toadd  <- -1*mu_1*sigma_2/sigma_1 + mu_2
@@ -113,7 +119,7 @@ alra <- function( A_norm, k=0,q=10) {
 
     lt0 <- A_norm_rank_k_cor_sc  <0
     A_norm_rank_k_cor_sc[lt0] <- 0 
-    print(sprintf("%.2f%% of the values became negative in the scaling process and were set to zero", 100*sum(lt0)/(nrow(A_norm)*ncol(A_norm))))
+    cat(sprintf("%.2f%% of the values became negative in the scaling process and were set to zero\n", 100*sum(lt0)/(nrow(A_norm)*ncol(A_norm))))
 
     A_norm_rank_k_cor_sc[originally_nonzero & A_norm_rank_k_cor_sc ==0] <- A_norm[originally_nonzero & A_norm_rank_k_cor_sc ==0]
 
@@ -123,7 +129,7 @@ alra <- function( A_norm, k=0,q=10) {
 
     original_nz <- sum(A_norm>0)/(nrow(A_norm)*ncol(A_norm))
     completed_nz <- sum(A_norm_rank_k_cor_sc>0)/(nrow(A_norm)*ncol(A_norm))
-    print(sprintf("The matrix went from %.2f%% nonzero to %.2f%% nonzero", 100*original_nz, 100*completed_nz))
+    cat(sprintf("The matrix went from %.2f%% nonzero to %.2f%% nonzero\n", 100*original_nz, 100*completed_nz))
 
     list(A_norm_rank_k=A_norm_rank_k,A_norm_rank_k_cor =A_norm_rank_k_cor, A_norm_rank_k_cor_sc=A_norm_rank_k_cor_sc)
 }
