@@ -6,7 +6,7 @@ normalize_data <- function (A) {
     totalUMIPerCell <- rowSums(A);
     if (any(totalUMIPerCell == 0)) {
         toRemove <- which(totalUMIPerCell == 0)
-        A_norm <- A_norm[-toRemove,]
+        A_norm <- A[-toRemove,]
         cat(sprintf("Removed %d cells which did not express any genes\n", length(toRemove)))
     }
 
