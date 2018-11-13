@@ -17,3 +17,5 @@ A_norm_completed <- result.completed[[3]]
 ~~~~
 
 See `alra_test.R` for a complete example.
+
+ALRA is integrated into [Seurat v3.0](https://github.com/satijalab/seurat/tree/release/3.0) (currently at pre-release stage) as function `RunALRA()`. But if you use Seurat v2, we provide a simple function to perform ALRA on a Seurat v2 object in `alraSeurat2.R`.
