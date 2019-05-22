@@ -50,7 +50,7 @@ choose_k <- function (A_norm,K=100, pval_thresh=1E-10, noise_start=80,q=2) {
     return (list( k=k,pvals =pvals,d=rsvd_out$d))
 }
 
-alra <- function( A_norm, k=0,q=10) {
+alra <- function( A_norm, k=0,q=10, quantile.prob = 0.001) {
     # Computes the k-rank approximation to A_norm and adjusts it according to the
     # error distribution learned from the negative values.
     #
@@ -91,8 +91,9 @@ alra <- function( A_norm, k=0,q=10) {
     A_norm_rank_k <- fastDecomp_noc$u[,1:k]%*%diag(fastDecomp_noc$d[1:k])%*% t(fastDecomp_noc$v[,1:k])
 
 
-    cat("Find mins\n")
-    A_norm_rank_k_mins <- abs(apply(A_norm_rank_k,2,min))
+    cat(sprintf("Find the %f quantile of each gene\n", quantile.prob))
+    #A_norm_rank_k_mins <- abs(apply(A_norm_rank_k,2,min))
+    A_norm_rank_k_mins <- abs(apply(A_norm_rank_k,2,FUN=function(x) quantile(x,quantile.prob)))
     cat("Sweep\n")
     A_norm_rank_k_cor <- replace(A_norm_rank_k, A_norm_rank_k <= A_norm_rank_k_mins[col(A_norm_rank_k)], 0)
 
