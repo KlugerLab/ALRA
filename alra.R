@@ -103,7 +103,7 @@ alra <- function( A_norm, k=0,q=10) {
     mu_1 <- colSums(A_norm_rank_k_cor)/colSums(!!A_norm_rank_k_cor)
     mu_2 <- colSums(A_norm)/colSums(!!A_norm)
 
-    toscale <- !is.na(sigma_1) & !is.na(sigma_2)
+    toscale <- !is.na(sigma_1) & !is.na(sigma_2) & !(sigma_1 == 0 & sigma_2 == 0) & !(sigma_1 == 0)
 
     cat(sprintf("Scaling all except for %d columns\n", sum(!toscale)))
 
