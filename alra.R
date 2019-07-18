@@ -3,7 +3,7 @@ randomized.svd <- function(A,K, q, method = 'rsvd', mkl.seed = -1) {
     out <- setNames(vector("list", 3), c("u", "d", "v"))
     if (method == 'rsvd') {
         library(rsvd)
-        out <- rsvd(A_norm,K,q=q)
+        out <- rsvd(A,K,q=q)
     }else if (method == 'rsvd-mkl') {
         library(fastRPCA)
         fastPCAOut <- fastPCA(A, k=K, its=q, l=(K+10), seed=mkl.seed)
@@ -32,7 +32,7 @@ normalize_data <- function (A) {
     A_norm <- log(A_norm +1);
 }
 
-choose_k <- function (A_norm,K=100, pval_thresh=1E-10, noise_start=80,q=2,use.mkl=F, mkl.seed =-1) {
+choose_k <- function (A_norm,K=100, thresh=6, noise_start=80,q=2,use.mkl=F, mkl.seed =-1) {
     #  Heuristic for choosing rank k for the low rank approximation based on
     #  statistics of the spacings between consecutive singular values. Finds
     #  the smallest singular value \sigma_i such that $\sigma_i - \sigma_{i-1}
@@ -43,7 +43,8 @@ choose_k <- function (A_norm,K=100, pval_thresh=1E-10, noise_start=80,q=2,use.mk
     #   A_norm: The log-transformed expression matrix of cells (rows) vs. genes (columns)
     #   K: Number of singular values to compute. Must be less than the
     #   smallest dimension of the matrix.
-    #   pval_thresh : The threshold for ``significance''
+    #   thresh: Number of standard deviations away from the ``noise'' singular
+    #   values which you consider to be signal
     #   noise_start : Index for which all smaller singular values are
     #   considered noise
     #   q : Number of additional power iterations
@@ -71,10 +72,12 @@ choose_k <- function (A_norm,K=100, pval_thresh=1E-10, noise_start=80,q=2,use.mk
     }else {
         rsvd_out <- randomized.svd(A_norm,K,q=q, method='rsvd-mkl', mkl.seed=mkl.seed)
     }
-    diffs <- diff(rsvd_out$d)
-    pvals <- pnorm(diffs,mean(diffs[noise_svals-1]),sd(diffs[noise_svals-1]))
-    k <- max(which( pvals  <pval_thresh))
-    return (list( k=k,pvals =pvals,d=rsvd_out$d))
+    diffs <- rsvd_out$d[1:(length(rsvd_out$d)-1)] - rsvd_out$d[2:length(rsvd_out$d)]
+    mu <- mean(diffs[noise_svals-1])
+    sigma <- sd(diffs[noise_svals-1])
+    num_of_sds <- (diffs-mu)/sigma
+    k <- max (which(num_of_sds > thresh))
+    return (list( k=k,num_of_sds = num_of_sds,d=rsvd_out$d))
 }
 
 alra <- function( A_norm, k=0,q=10, quantile.prob = 0.001, use.mkl = F, mkl.seed=-1) {
@@ -141,7 +144,7 @@ alra <- function( A_norm, k=0,q=10, quantile.prob = 0.001, use.mkl = F, mkl.seed
     mu_1 <- colSums(A_norm_rank_k_cor)/colSums(!!A_norm_rank_k_cor)
     mu_2 <- colSums(A_norm)/colSums(!!A_norm)
 
-    toscale <- !is.na(sigma_1) & !is.na(sigma_2)
+    toscale <- !is.na(sigma_1) & !is.na(sigma_2) & !(sigma_1 == 0 & sigma_2 == 0) & !(sigma_1 == 0)
 
     cat(sprintf("Scaling all except for %d columns\n", sum(!toscale)))
 
