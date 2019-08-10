@@ -1,3 +1,5 @@
+# Demo for running ALRA on real data. Runtime <10 minutes on standard laptop.
+
 source('alra.R')
 
 # The B and NK cells from the purified of the manuscript.
