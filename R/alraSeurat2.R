@@ -9,7 +9,7 @@
 #' @param ... parameters passing to alra()
 #' 
 #' @return an updated Seurat object with ALRA imputed data in the "data" slot
-#' 
+#' @export
 alraSeurat2 <- function(obj, ...){
   data_alra <- t(alra(t(as.matrix(obj@data)), ...)[[3]])
   colnames(data_alra) <- obj@cell.names

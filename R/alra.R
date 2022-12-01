@@ -35,7 +35,7 @@ normalize_data <- function (A) {
 
 #' Heuristic for choosing rank k for the low rank approximation based on
 #' statistics of the spacings between consecutive singular values. Finds
-#' the smallest singular value \sigma_i such that $\sigma_i - \sigma_{i-1}
+#' the smallest singular value $\sigma_i$ such that $\sigma_i - \sigma_{i-1}$
 #' is significantly different than spacings in the tail of the singular values.
 #' 
 #' @param A_norm The log-transformed expression matrix of cells (rows) vs. genes (columns)
