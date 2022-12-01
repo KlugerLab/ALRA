@@ -18,6 +18,7 @@ Suggests:
     fastRPCA,
     testthat (>= 3.0.0)
 LazyData: true
+LazyDataCompression: bzip2
 Config/testthat/edition: 3
 Remotes:
     github::KlugerLab/rpca-mkl/fastRPCA

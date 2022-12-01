@@ -4,7 +4,7 @@
 \alias{choose_k}
 \title{Heuristic for choosing rank k for the low rank approximation based on
 statistics of the spacings between consecutive singular values. Finds
-the smallest singular value $\sigma_i$ such that $\sigma_i - \sigma_{i-1}$
+the smallest singular value \eqn{\sigma_i} such that \eqn{\sigma_i - \sigma_{i-1}}
 is significantly different than spacings in the tail of the singular values.}
 \usage{
 choose_k(
@@ -50,6 +50,6 @@ A list with three items
 \description{
 Heuristic for choosing rank k for the low rank approximation based on
 statistics of the spacings between consecutive singular values. Finds
-the smallest singular value $\sigma_i$ such that $\sigma_i - \sigma_{i-1}$
+the smallest singular value \eqn{\sigma_i} such that \eqn{\sigma_i - \sigma_{i-1}}
 is significantly different than spacings in the tail of the singular values.
 }

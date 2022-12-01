@@ -2,11 +2,10 @@
 randomized.svd <- function(A,K, q, method = 'rsvd', mkl.seed = -1) {
     out <- setNames(vector("list", 3), c("u", "d", "v"))
     if (method == 'rsvd') {
-        library(rsvd)
-        out <- rsvd(A,K,q=q)
+        out <- rsvd::rsvd(A,K,q=q)
     }else if (method == 'rsvd-mkl') {
-        library(fastRPCA)
-        fastPCAOut <- fastPCA(A, k=K, its=q, l=(K+10), seed=mkl.seed)
+        requireNamespace("fastRPCA")
+        fastPCAOut <- fastRPCA::fastPCA(A, k=K, its=q, l=(K+10), seed=mkl.seed)
         out$u <- fastPCAOut$U
         out$v <- fastPCAOut$V
         out$d <- diag(fastPCAOut$S)
@@ -35,7 +34,7 @@ normalize_data <- function (A) {
 
 #' Heuristic for choosing rank k for the low rank approximation based on
 #' statistics of the spacings between consecutive singular values. Finds
-#' the smallest singular value $\sigma_i$ such that $\sigma_i - \sigma_{i-1}$
+#' the smallest singular value \eqn{\sigma_i} such that \eqn{\sigma_i - \sigma_{i-1}}
 #' is significantly different than spacings in the tail of the singular values.
 #' 
 #' @param A_norm The log-transformed expression matrix of cells (rows) vs. genes (columns)
