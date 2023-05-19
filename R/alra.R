@@ -2,11 +2,10 @@
 randomized.svd <- function(A,K, q, method = 'rsvd', mkl.seed = -1) {
     out <- setNames(vector("list", 3), c("u", "d", "v"))
     if (method == 'rsvd') {
-        library(rsvd)
-        out <- rsvd(A,K,q=q)
+        out <- rsvd::rsvd(A,K,q=q)
     }else if (method == 'rsvd-mkl') {
-        library(fastRPCA)
-        fastPCAOut <- fastPCA(A, k=K, its=q, l=(K+10), seed=mkl.seed)
+        requireNamespace("fastRPCA")
+        fastPCAOut <- fastRPCA::fastPCA(A, k=K, its=q, l=(K+10), seed=mkl.seed)
         out$u <- fastPCAOut$U
         out$v <- fastPCAOut$V
         out$d <- diag(fastPCAOut$S)
@@ -16,8 +15,9 @@ randomized.svd <- function(A,K, q, method = 'rsvd', mkl.seed = -1) {
     return(out)
 }
 
+#' Simple convenience function to library and log normalize a matrix
+#' @export
 normalize_data <- function (A) {
-    #  Simple convenience function to library and log normalize a matrix
 
     totalUMIPerCell <- rowSums(A);
     if (any(totalUMIPerCell == 0)) {
@@ -32,33 +32,33 @@ normalize_data <- function (A) {
     A_norm <- log(A_norm +1);
 }
 
+#' Heuristic for choosing rank k for the low rank approximation based on
+#' statistics of the spacings between consecutive singular values. Finds
+#' the smallest singular value \eqn{\sigma_i} such that \eqn{\sigma_i - \sigma_{i-1}}
+#' is significantly different than spacings in the tail of the singular values.
+#' 
+#' @param A_norm The log-transformed expression matrix of cells (rows) vs. genes (columns)
+#' @param K Number of singular values to compute. Must be less than the
+#' smallest dimension of the matrix.
+#' @param thresh Number of standard deviations away from the ``noise'' singular
+#' values which you consider to be signal
+#' @param noise_start Index for which all smaller singular values are
+#' considered noise
+#' @param q Number of additional power iterations
+#' @param use.mkl Use the Intel MKL based implementation of SVD. Needs to be
+#' installed from https://github.com/KlugerLab/rpca-mkl.
+#' @param mkl.seed Only relevant if use.mkl=T. Set the seed for the random
+#' generator for the Intel MKL implementation of SVD. Any number <0 will
+#' use the current timestamp. If use.mkl=F, set the seed using
+#' set.seed() function as usual.
+#' 
+#' @returns
+#' A list with three items
+#' 1) Chosen k
+#' 2) P values of each possible k 
+#' 3) Singular values of the matrix A_norm
+#' @export
 choose_k <- function (A_norm,K=100, thresh=6, noise_start=80,q=2,use.mkl=F, mkl.seed =-1) {
-    #  Heuristic for choosing rank k for the low rank approximation based on
-    #  statistics of the spacings between consecutive singular values. Finds
-    #  the smallest singular value \sigma_i such that $\sigma_i - \sigma_{i-1}
-    #  is significantly different than spacings in the tail of the singular values.
-    # 
-    #
-    # Args:
-    #   A_norm: The log-transformed expression matrix of cells (rows) vs. genes (columns)
-    #   K: Number of singular values to compute. Must be less than the
-    #   smallest dimension of the matrix.
-    #   thresh: Number of standard deviations away from the ``noise'' singular
-    #   values which you consider to be signal
-    #   noise_start : Index for which all smaller singular values are
-    #   considered noise
-    #   q : Number of additional power iterations
-    #   use.mkl : Use the Intel MKL based implementation of SVD. Needs to be
-    #             installed from https://github.com/KlugerLab/rpca-mkl.
-    #   mkl.seed : Only relevant if use.mkl=T. Set the seed for the random
-    #   generator for the Intel MKL implementation of SVD. Any number <0 will
-    #   use the current timestamp. If use.mkl=F, set the seed using
-    #   set.seed() function as usual.
-    # Returns:
-    #   A list with three items
-    #       1) Chosen k
-    #       2) P values of each possible k 
-    #       3) Singular values of the matrix A_norm
 
     if (K > min(dim(A_norm))) {
          stop("For an m by n matrix, K must be smaller than the min(m,n).\n")
@@ -80,33 +80,35 @@ choose_k <- function (A_norm,K=100, thresh=6, noise_start=80,q=2,use.mkl=F, mkl.
     return (list( k=k,num_of_sds = num_of_sds,d=rsvd_out$d))
 }
 
+#' Computes the k-rank approximation to A_norm and adjusts it according to the
+#' error distribution learned from the negative values.
+#' 
+#' @param A_norm The log-transformed expression matrix of cells (rows) vs. genes (columns)
+#' @param k the rank of the rank-k approximation. Set to 0 for automated choice of k.
+#' @param q the number of additional power iterations in randomized SVD
+#' @param use.mkl Use the Intel MKL based implementation of SVD. Needs to be
+#' installed from https://github.com/KlugerLab/rpca-mkl.
+#' @param mkl.seed Only relevant if use.mkl=T. Set the seed for the random
+#' generator for the Intel MKL implementation of SVD. Any number <0 will
+#' use the current timestamp. If use.mkl=F, set the seed using
+#' set.seed() function as usual.
+#' 
+#' @returns
+#' A list with three items
+#' 1) The rank k approximation of A_norm.
+#' 2) The rank k approximation of A_norm, adaptively thresholded
+#' 3) The rank k approximation of A_norm, adaptively thresholded and
+#' with the first two moments of the non-zero values matched to the
+#' first two moments of the non-zeros of A_norm. This is the completed
+#' matrix most people will want to work with
+#' 
+#' @examples
+#' A_norm <- normalize_data(b_nk_example)
+#' result.completed <- alra(A_norm,15)
+#' A_norm_rank15 <- result.completed[[1]]     # The low rank approximation for reference purposes...not suggested for matrix completion
+#' A_norm_rank15_cor <- result.completed[[3]] # The actual adjusted, completed matrix
+#' @export
 alra <- function( A_norm, k=0,q=10, quantile.prob = 0.001, use.mkl = F, mkl.seed=-1) {
-    # Computes the k-rank approximation to A_norm and adjusts it according to the
-    # error distribution learned from the negative values.
-    #
-    # Args:
-    #   A_norm: The log-transformed expression matrix of cells (rows) vs. genes (columns)
-    #   k : the rank of the rank-k approximation. Set to 0 for automated choice of k.
-    #   q : the number of additional power iterations in randomized SVD
-    #   use.mkl : Use the Intel MKL based implementation of SVD. Needs to be
-    #             installed from https://github.com/KlugerLab/rpca-mkl.
-    #   mkl.seed : Only relevant if use.mkl=T. Set the seed for the random
-    #   generator for the Intel MKL implementation of SVD. Any number <0 will
-    #   use the current timestamp. If use.mkl=F, set the seed using
-    #   set.seed() function as usual.
-    #
-    # Returns:
-    #   A list with three items
-    #       1) The rank k approximation of A_norm.
-    #       2) The rank k approximation of A_norm, adaptively thresholded
-    #       3) The rank k approximation of A_norm, adaptively thresholded and
-    #       with the first two moments of the non-zero values matched to the
-    #       first two moments of the non-zeros of A_norm. This is the completed
-    #       matrix most people will want to work with
-    # Example:
-    #     result.completed <- adjusted_svd(A_norm,15)
-    #     A_norm_rank15 <- result.completed[[1]]     # The low rank approximation for reference purposes...not suggested for matrix completion
-    #     A_norm_rank15_cor <- result.completed[[3]] # The actual adjusted, completed matrix
 
     cat(sprintf("Read matrix with %d cells and %d genes\n", nrow(A_norm), ncol(A_norm)))
     if (!(any(grepl("matrix", class(A_norm), ignore.case = TRUE)))) { 
